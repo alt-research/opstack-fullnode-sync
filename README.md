@@ -92,6 +92,8 @@ curl --location 'localhost:8545' \
 }'
 ```
 
+if the node is still syncing, you would see:
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -114,8 +116,14 @@ curl --location 'localhost:8545' \
     "syncedStorageBytes": "0x225f7a"
   }
 }
-
 ```
+
+or the syncing has completed:
+
+```json
+{"jsonrpc":"2.0","id":2,"result":false}
+```
+
 
 #### check after syncing
 
