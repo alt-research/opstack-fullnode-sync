@@ -117,6 +117,8 @@ curl --location 'localhost:8545' \
 
 ```
 
+#### check after syncing
+
 ```sh
 curl --location 'localhost:8545' \
 --header 'Content-Type: application/json' \
@@ -126,8 +128,6 @@ curl --location 'localhost:8545' \
   "id": 2
 }'
 ```
-
-#### check after syncing
 
 should return something like: 
 
