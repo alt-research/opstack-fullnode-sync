@@ -22,7 +22,10 @@ Make a copy of `.env.example` named `.env`.
 
 ```sh
 cp .env.example .env
+# modify .env to your parameters.
 ```
+
+Or, our team will provide one `.env` file for your rollup directly.
 
 ## Operating the Node
 
