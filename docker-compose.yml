@@ -71,12 +71,10 @@ services:
     volumes:
       - "node:/data"
       - "./jwt.txt:/jwt.txt"
+    env_file:
+      - opnode.env
     environment:
-      - L1_RPC=${L1_RPC}
-      - L1_RPC_KIND=${L1_RPC_KIND:-standard}
-      - P2P_STATIC=${P2P_STATIC}
       - ROLLUP_CONFIG_URL=${ROLLUP_CONFIG_URL}
-      - PLASMA_DA_SERVER=${ROLLUP_CONFIG_URL}
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
@@ -98,8 +96,6 @@ services:
             --syncmode=execution-layer \
             --rollup.config=/data/rollup.json \
             --safedb.path=/data/safedb \
-            --l1=$L1_RPC \
-            --l1.rpckind=$L1_RPC_KIND \
             --l1.trustrpc \
             --l1.beacon.ignore \
             --l2=http://geth:8551 \
@@ -110,8 +106,4 @@ services:
             --p2p.listen.udp=9003 \
             --p2p.discovery.path=/data/opnode_discovery_db \
             --p2p.peerstore.path=/data/opnode_peerstore_db \
-            --p2p.priv.path=/data/opnode_p2p_priv.txt \
-            --p2p.static=$P2P_STATIC \
-            --plasma.enabled \
-            --plasma.verify-on-read \
-            --plasma.da-server=$PLASMA_DA_SERVER
+            --p2p.priv.path=/data/opnode_p2p_priv.txt 
