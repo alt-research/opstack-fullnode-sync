@@ -54,6 +54,8 @@ services:
             --authrpc.jwtsecret=/jwt.txt \
             --bootnodes=$BOOTNODES \
             --metrics \
+            --metrics.port=6060 \
+            --metrics.addr="0.0.0.0" \
             --syncmode=$SYNC_MODE \
             --gcmode=$GC_MODE
 
