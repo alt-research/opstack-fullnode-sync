@@ -97,7 +97,6 @@ services:
         exec op-node \
             --syncmode=execution-layer \
             --rollup.config=/data/rollup.json \
-            --safedb.path=/data/safedb \
             --l1.trustrpc \
             --l1.beacon.ignore \
             --l2=http://geth:8551 \
