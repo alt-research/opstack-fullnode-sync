@@ -32,7 +32,7 @@ services:
         if [ ! -d "/data/geth" ]; then
             echo "Initializing geth datadir"
             wget -O /data/genesis.json $GENESIS_URL
-            geth init --datadir=/data /data/genesis.json
+            geth init --state.scheme=hash --datadir=/data /data/genesis.json
         else
             echo "geth datadir already initialized, skipping..."
         fi
