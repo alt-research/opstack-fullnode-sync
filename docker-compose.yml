@@ -24,7 +24,7 @@ services:
       - BOOTNODES=${BOOTNODES}
       - GENESIS_URL=${GENESIS_URL}
       - SYNC_MODE=${SYNC_MODE:-full}
-      - GC_MODE=${SYNC_MODE:-archive}
+      - GC_MODE=${GC_MODE:-archive}
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
