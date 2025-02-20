@@ -9,6 +9,9 @@ if [ -z ${WS_API+x} ]; then
     export WS_API="web3,eth,txpool,net,engine,debug,miner"
 fi
 
+# In newer version, we need to specify the static nodes in the config file
+# with "StaticNodes" instead of using the "--bootnodes" flag.
+# ref: https://github.com/ethereum/go-ethereum/issues/31208
 cat > /data/config.toml <<EOF
 [Node.P2P]
     StaticNodes = ${GETH_STATICNODES}
