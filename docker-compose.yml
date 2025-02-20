@@ -22,12 +22,19 @@ services:
     environment:
       - SEQUENCER_HTTP=${SEQUENCER_HTTP}
       - BOOTNODES=${BOOTNODES}
+      - GETH_STATICNODES=${GETH_STATICNODES}
       - GENESIS_URL=${GENESIS_URL}
       - SYNC_MODE=${SYNC_MODE:-full}
       - GC_MODE=${GC_MODE:-archive}
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
+        cat > /data/bootnodes.toml <<EOF
+        [Node.P2P]
+          StaticNodes = ${GETH_STATICNODES}
+        EOF
+        echo "geth p2p bootnodes:"
+        cat /data/bootnodes.toml
         # do geth init if datadir is empty
         if [ ! -d "/data/geth" ]; then
             echo "Initializing geth datadir"
@@ -52,12 +59,12 @@ services:
             --authrpc.vhosts="*" \
             --authrpc.port=8551 \
             --authrpc.jwtsecret=/jwt.txt \
-            --bootnodes=$BOOTNODES \
             --metrics \
             --metrics.port=6060 \
             --metrics.addr="0.0.0.0" \
             --syncmode=$SYNC_MODE \
-            --gcmode=$GC_MODE
+            --gcmode=$GC_MODE \
+            --config=/data/bootnodes.toml
 
   node:
     depends_on:
