@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 export OP_NODE_L1_ETH_RPC=$L1_RPC
 export OP_NODE_L1_RPC_KIND=$L1_RPC_KIND

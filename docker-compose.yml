@@ -16,55 +16,16 @@ services:
       - "6060:6060"
       # geth p2p port
       - "30303:30303"
+    env_file:
+      - .env
     volumes:
       - "geth:/data"
       - "./jwt.txt:/jwt.txt"
-    environment:
-      - SEQUENCER_HTTP=${SEQUENCER_HTTP}
-      - BOOTNODES=${BOOTNODES}
-      - GETH_STATICNODES=${GETH_STATICNODES}
-      - GENESIS_URL=${GENESIS_URL}
-      - SYNC_MODE=${SYNC_MODE:-full}
-      - GC_MODE=${GC_MODE:-archive}
+      - "./entrypoints/op-geth.sh:/entrypoints/op-geth.sh"
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
-        cat > /data/bootnodes.toml <<EOF
-        [Node.P2P]
-          StaticNodes = ${GETH_STATICNODES}
-        EOF
-        echo "geth p2p bootnodes:"
-        cat /data/bootnodes.toml
-        # do geth init if datadir is empty
-        if [ ! -d "/data/geth" ]; then
-            echo "Initializing geth datadir"
-            wget -O /data/genesis.json $GENESIS_URL
-            geth init --state.scheme=hash --datadir=/data /data/genesis.json
-        else
-            echo "geth datadir already initialized, skipping..."
-        fi
-        exec geth \
-            --datadir=/data \
-            --rollup.disabletxpoolgossip=true \
-            --rollup.sequencerhttp=$SEQUENCER_HTTP \
-            --http \
-            --http.corsdomain="*" \
-            --http.vhosts="*" \
-            --http.addr=0.0.0.0 \
-            --http.api=web3,debug,eth,txpool,net,engine \
-            --ws \
-            --ws.addr=0.0.0.0 \
-            --ws.api=web3,debug,eth,txpool,net,engine \
-            --authrpc.addr=0.0.0.0 \
-            --authrpc.vhosts="*" \
-            --authrpc.port=8551 \
-            --authrpc.jwtsecret=/jwt.txt \
-            --metrics \
-            --metrics.port=6060 \
-            --metrics.addr="0.0.0.0" \
-            --syncmode=$SYNC_MODE \
-            --gcmode=$GC_MODE \
-            --config=/data/bootnodes.toml
+        exec /entrypoints/op-geth.sh
 
   node:
     depends_on:
