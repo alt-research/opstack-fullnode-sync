@@ -9,12 +9,12 @@ if [ -z ${WS_API+x} ]; then
     export WS_API="web3,eth,txpool,net,engine,debug,miner"
 fi
 
-cat > /data/bootnodes.toml <<EOF
+cat > /data/config.toml <<EOF
 [Node.P2P]
     StaticNodes = ${GETH_STATICNODES}
 EOF
 echo "geth p2p bootnodes:"
-cat /data/bootnodes.toml
+cat /data/config.toml
 
 # do geth init if datadir is empty
 if [ ! -d "/data/geth" ]; then
@@ -46,4 +46,4 @@ exec geth \
     --metrics.addr="0.0.0.0" \
     --syncmode=$SYNC_MODE \
     --gcmode=$GC_MODE \
-    --config=/data/bootnodes.toml
+    --config=/data/config.toml
