@@ -28,6 +28,11 @@ else
     echo "geth datadir already initialized, skipping..."
 fi
 
+if [ ! -f "/data/genesis.json" ]; then
+    echo "Downloading genesis.json"
+    wget -O /data/genesis.json $GENESIS_URL
+fi
+
 exec geth \
     --datadir=/data \
     --rollup.disabletxpoolgossip=true \
