@@ -31,6 +31,7 @@ fi
 if [ ! -f "/data/genesis.json" ]; then
     echo "Downloading genesis.json"
     wget -O /data/genesis.json $GENESIS_URL
+    geth init --state.scheme=hash --datadir=/data /data/genesis.json
 fi
 
 exec geth \
