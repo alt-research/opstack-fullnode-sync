@@ -3,3 +3,5 @@ node.env
 geth.env
 .env
 tmp
+
+.DS_Store
