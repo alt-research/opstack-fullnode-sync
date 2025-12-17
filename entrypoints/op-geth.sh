@@ -9,6 +9,11 @@ if [ -z ${WS_API+x} ]; then
     export WS_API="web3,eth,txpool,net,engine,debug,miner"
 fi
 
+# set default value for rollup.superchain-upgrades if not exist
+if [ -z ${GETH_ROLLUP_SUPERCHAIN_UPGRADES+x} ]; then
+    export GETH_ROLLUP_SUPERCHAIN_UPGRADES="true"
+fi
+
 # In newer version, we need to specify the static nodes in the config file
 # with "StaticNodes" instead of using the "--bootnodes" flag.
 # ref: https://github.com/ethereum/go-ethereum/issues/31208
@@ -56,4 +61,4 @@ exec geth \
     --syncmode=$SYNC_MODE \
     --gcmode=$GC_MODE \
     --config=/data/config.toml \
-    --rollup.superchain-upgrades=false
+    --rollup.superchain-upgrades=$GETH_ROLLUP_SUPERCHAIN_UPGRADES
