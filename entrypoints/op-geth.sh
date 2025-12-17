@@ -55,4 +55,5 @@ exec geth \
     --metrics.addr="0.0.0.0" \
     --syncmode=$SYNC_MODE \
     --gcmode=$GC_MODE \
-    --config=/data/config.toml
+    --config=/data/config.toml \
+    --rollup.superchain-upgrades=false
