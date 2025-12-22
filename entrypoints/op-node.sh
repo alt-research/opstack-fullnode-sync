@@ -57,10 +57,9 @@ mkdir -p /data/opnode_peerstore_db
 mkdir -p /data/safedb
 
 # Build op-node command
-OP_NODE_CMD="exec op-node \
-    --syncmode=execution-layer"
+OP_NODE_CMD="exec op-node"
 
-# Add network-specific flags
+# Add network-specific flag first if NETWORK is set
 if [ -n "$NETWORK" ]; then
     OP_NODE_CMD="$OP_NODE_CMD \
     --network=$NETWORK"
@@ -71,6 +70,7 @@ fi
 
 # Add common flags
 OP_NODE_CMD="$OP_NODE_CMD \
+    --syncmode=execution-layer \
     --safedb.path=/data/safedb \
     --l1.trustrpc \
     --l1.beacon.ignore \
