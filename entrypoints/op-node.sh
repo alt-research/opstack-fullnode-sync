@@ -68,12 +68,20 @@ else
     --rollup.config=/data/rollup.json"
 fi
 
+# Add L1 beacon flag based on whether L1_BEACON is configured
+if [ -n "$L1_BEACON" ]; then
+    OP_NODE_CMD="$OP_NODE_CMD \
+    --l1.beacon=$L1_BEACON"
+else
+    OP_NODE_CMD="$OP_NODE_CMD \
+    --l1.beacon.ignore"
+fi
+
 # Add common flags
 OP_NODE_CMD="$OP_NODE_CMD \
     --syncmode=execution-layer \
     --safedb.path=/data/safedb \
     --l1.trustrpc \
-    --l1.beacon.ignore \
     --l2=http://geth:8551 \
     --l2.jwt-secret=/jwt.txt \
     --metrics.enabled \
