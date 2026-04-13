@@ -5,6 +5,7 @@ volumes:
 services:
   geth:
     image: ${GETH_IMAGE}
+    user: "0"
     ports:
       # geth http rpc
       - "8545:8545"
@@ -31,6 +32,7 @@ services:
     depends_on:
       - geth
     image: ${NODE_IMAGE}
+    user: "0"
     ports:
       # node rpc
       - "9545:9545"
