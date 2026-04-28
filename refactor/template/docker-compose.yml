@@ -1,0 +1,211 @@
+version: '3.8'
+
+services:
+  geth:
+    image: ${GETH_IMAGE}
+    container_name: opstack-geth
+    restart: unless-stopped
+    ports:
+      # geth http rpc
+      - "8545:8545"
+      # geth ws rpc
+      - "8546:8546"
+      # geth engine authrpc
+      - "8551:8551"
+      # geth metrics
+      - "6060:6060"
+      # geth p2p port
+      - "30303:30303"
+    volumes:
+      - geth-data:/data
+      - ./jwt.txt:/data/jwt.txt:ro
+    environment:
+      # Geth Environment Variables (K8s friendly)
+      - GETH_DATADIR=/data
+      - GETH_AUTHRPC_ADDR=0.0.0.0
+      - GETH_AUTHRPC_PORT=8551
+      - GETH_AUTHRPC_VHOSTS=*
+      - GETH_AUTHRPC_JWTSECRET=/data/jwt.txt
+      - GETH_HTTP=true
+      - GETH_HTTP_ADDR=0.0.0.0
+      - GETH_HTTP_PORT=8545
+      - GETH_HTTP_API=${HTTP_API:-web3,eth,txpool,net,engine,debug,miner,admin}
+      - GETH_HTTP_CORSDOMAIN=*
+      - GETH_HTTP_VHOSTS=*
+      - GETH_WS=true
+      - GETH_WS_ADDR=0.0.0.0
+      - GETH_WS_PORT=8546
+      - GETH_WS_API=${WS_API:-web3,eth,txpool,net,engine,debug,miner,admin}
+      - GETH_WS_ORIGINS=*
+      - GETH_METRICS=true
+      - GETH_METRICS_ADDR=0.0.0.0
+      - GETH_METRICS_PORT=6060
+      - GETH_SYNCMODE=${SYNC_MODE:-full}
+      - GETH_GCMODE=${GC_MODE:-archive}
+      - GETH_DISCOVERY_PORT=30303
+      - GETH_ROLLUP_SEQUENCERHTTP=${SEQUENCER_HTTP}
+      - GETH_ROLLUP_DISABLETXPOOLGOSSIP=true
+   
+   
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        set -e
+
+        # Create config.toml for static nodes (geth doesn't support GETH_STATICNODES env var)
+        cat > /data/config.toml <<EOF
+        [Node.P2P]
+            StaticNodes = ${GETH_STATICNODES}
+        EOF
+        echo "geth p2p bootnodes:"
+        cat /data/config.toml
+
+        # Initialize geth if datadir is empty
+        if [ ! -d "/data/geth" ]; then
+          echo "Initializing geth datadir"
+          wget -O /data/genesis.json ${GENESIS_URL}
+          geth init --state.scheme=hash --datadir=/data /data/genesis.json
+        else
+          echo "geth datadir already initialized, skipping..."
+        fi
+
+        if [ ! -f "/data/genesis.json" ]; then
+          echo "Downloading genesis.json"
+          wget -O /data/genesis.json ${GENESIS_URL}
+          geth init --state.scheme=hash --datadir=/data /data/genesis.json
+        fi
+
+        echo "Starting geth with environment variables + config.toml..."
+        exec geth --config=/data/config.toml
+    networks:
+      - opstack-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  node:
+    image: ${NODE_IMAGE}
+    container_name: opstack-node
+    restart: unless-stopped
+    ports:
+      - "9003:9003"    # P2P TCP
+      - "9003:9003/udp"    # P2P UDP
+      - "7301:7300"    # Metrics
+      - "9545:9545"    # RPC
+    volumes:
+      - node-data:/data
+      - ./jwt.txt:/data/jwt.txt:ro
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        set -e
+
+        # Initialize directories
+        mkdir -p /data/p2p_discovery
+        mkdir -p /data/p2p_peerstore
+        mkdir -p /data/safedb
+        mkdir -p /data/admin
+
+        # Download rollup.json if URL is provided
+        if [[ "${ROLLUP_CONFIG_URL}" == http* ]]; then
+          echo "Downloading rollup.json from ${ROLLUP_CONFIG_URL}"
+          wget -O /data/rollup.json ${ROLLUP_CONFIG_URL} || echo "Failed to download rollup.json"
+          export OP_NODE_ROLLUP_CONFIG=/data/rollup.json
+        else
+          export OP_NODE_ROLLUP_CONFIG=${ROLLUP_CONFIG_URL}
+        fi
+
+        # Handle L1 Beacon configuration based on ALTDA
+        if [ "${ALTDA_ENABLED}" = "true" ] && [ -n "${ALTDA_DA_SERVER}" ]; then
+          echo "ALTDA enabled, setting OP_NODE_L1_BEACON_IGNORE=true"
+          export OP_NODE_L1_BEACON_IGNORE=true
+        elif [ -n "${L1_BEACON}" ]; then
+          echo "Using L1 Beacon: ${L1_BEACON}"
+          export OP_NODE_L1_BEACON="${L1_BEACON}"
+        else
+          echo "Warning: Neither ALTDA nor L1_BEACON is configured properly"
+        fi
+
+        echo "Starting op-node..."
+        exec op-node
+    environment:
+      # L1 Configuration
+      - OP_NODE_L1_ETH_RPC=${L1_RPC}
+      - OP_NODE_L1_RPC_KIND=${L1_RPC_KIND:-standard}
+      # L1_BEACON or L1_BEACON_IGNORE will be set dynamically by startup script based on ALTDA config
+      - L1_BEACON=${L1_BEACON:-}
+      - OP_NODE_L1_TRUST_RPC=true
+      # - OP_NODE_L1_RPC_RATE_LIMIT=1000
+      # - OP_NODE_L1_CACHE_SIZE=1000
+      - OP_NODE_VERIFIER_L1_CONFS=15
+      - OP_NODE_SEQUENCER_L1_CONFS=15
+
+      # L2 Engine Configuration
+      - OP_NODE_L2_ENGINE_AUTH=/data/jwt.txt
+      - OP_NODE_L2_ENGINE_RPC=http://geth:8551
+
+      # RPC Configuration
+      - OP_NODE_RPC_ADDR=0.0.0.0
+      - OP_NODE_RPC_PORT=9545
+      # - OP_NODE_RPC_ENABLE_ADMIN=true
+      # - OP_NODE_RPC_ADMIN_STATE=/data/admin
+
+      # P2P Configuration
+      - OP_NODE_P2P_LISTEN_IP=0.0.0.0
+      - OP_NODE_P2P_LISTEN_TCP_PORT=9003
+      - OP_NODE_P2P_LISTEN_UDP_PORT=9003
+      - OP_NODE_P2P_DISCOVERY_PATH=/data/p2p_discovery
+      - OP_NODE_P2P_PEERSTORE_PATH=/data/p2p_peerstore
+      - OP_NODE_P2P_PRIV_PATH=/data/p2p_priv.txt
+      - OP_NODE_P2P_STATIC=${P2P_STATIC}
+      # - OP_NODE_P2P_PEER_BANNING=false
+
+      # Metrics Configuration
+      - OP_NODE_METRICS_ENABLED=true
+      - OP_NODE_METRICS_ADDR=0.0.0.0
+      - OP_NODE_METRICS_PORT=7300
+
+      # Sync Configuration
+      - OP_NODE_SYNCMODE=execution-layer
+      - OP_NODE_SAFEDB_PATH=/data/safedb
+
+      # Logging
+      # - OP_NODE_LOG_LEVEL=info
+
+      # DA Configuration
+      # ALTDA Configuration (startup script will set L1_BEACON_IGNORE based on these)
+      - ALTDA_ENABLED=${ALTDA_ENABLED:-false}
+      - ALTDA_DA_SERVER=${ALTDA_DA_SERVER:-}
+      - OP_NODE_ALTDA_ENABLED=${ALTDA_ENABLED:-false}
+      - OP_NODE_ALTDA_DA_SERVER=${ALTDA_DA_SERVER:-}
+      - OP_NODE_ALTDA_DA_SERVICE=${ALTDA_DA_SERVICE:-false}
+
+      # PLASMA Configuration (if PLASMA_ENABLED=true)
+      - OP_NODE_PLASMA_ENABLED=${PLASMA_ENABLED:-false}
+      - OP_NODE_PLASMA_DA_SERVER=${PLASMA_DA_SERVER:-}
+    depends_on:
+      geth:
+        condition: service_healthy
+    networks:
+      - opstack-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9545"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  geth-data:
+    driver: local
+  node-data:
+    driver: local
+
+networks:
+  opstack-network:
+    driver: bridge
